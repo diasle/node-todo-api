@@ -5,7 +5,15 @@ const { ObjectID } = require("mongodb");
 const { app } = require("./server");
 const { Todo } = require("./models/Todo");
 
-const todos =  [{ text: "First", _id: new ObjectID() }, { text: "Second", _id: new ObjectID() }];
+const todos =  [
+    {
+        text: "First",
+        _id: new ObjectID(),
+        completed: true,
+        completedAt: 333,
+    },
+    { text: "Second", _id: new ObjectID() }
+    ];
 
 beforeEach((done) => {
     Todo.remove({}).then(() => {
@@ -140,4 +148,45 @@ describe("DEL/todos/:id", () => {
            .expect(404)
            .end(done);
    });
+});
+
+describe("PATCH/todos/:id", () => {
+    it("returns 404 when id is not valid", (done) => {
+        request(app)
+            .patch("/todos/543543")
+            .expect(404)
+            .end(done);
+    });
+
+
+    it("sets completed to false and resets completedAt if passed complete is not true", (done) => {
+        const id = todos[0]._id.toHexString();
+
+        request(app)
+            .patch(`/todos/${ id }`)
+            .send({ text: "new task", completed: false })
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.todo.completed).toBe(false);
+                expect(res.body.todo.completedAt).toBeFalsy();
+            })
+            .end(done);
+
+    });
+
+    it("updates todo", (done) => {
+        const id = todos[1]._id.toHexString();
+
+        request(app)
+            .patch(`/todos/${ id }`)
+            .send({ text: "new task", completed: true })
+            .expect(200)
+            .expect((res) => {
+                expect(res.body.todo.text).toBe("new task");
+                expect(res.body.todo.completed).toBe(true);
+                expect(res.body.todo.completedAt).toBeTruthy();
+            })
+            .end(done);
+
+    });
 });
